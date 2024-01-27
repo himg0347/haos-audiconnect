@@ -1,34 +1,68 @@
 {
     "config": {
-        "flow_title": "{name}",
+        "title": "Audi Connect",
         "step": {
             "user": {
-                "title": "Enregistre ton compte",
+                "title": "Register your account",
                 "data": {
                     "username": "Email",
-                    "password": "Mot de passe",
-                    "country": "Code pays",
-                    "pin": "Code Pin"
+                    "password": "Password",
+                    "country": "country code",
+                    "pin": "Pin code"
                 }
             }
         },
         "error": {
-            "cannot_connect": "Impossible de se connecter",
-            "invalid_auth": "Authentification invalide",
-            "unknown": "Erreur inconnue"
+            "cannot_connect": "Can't connect to API.",
+            "invalid_auth": "Invalid username password combination",
+            "unknown": "unknown error."
         },
         "abort": {
-            "already_configured": "Service déjà configuré"
+            "already_configured": "Service is already configured"
+        }
+    },
+    "selector": {
+        "select_mode": {
+          "options": {
+            "lock": "Lock",
+            "climater": "Climater",
+            "charger": "Charger",
+            "pre_heating": "Pre heating",
+            "window_heating": "Windows heating",
+            "ventilation": "Ventilation"
+          }
         }
     },
     "options": {
         "step": {
-            "init":{
+
+          "init": {
+                "title": "Options",
+                "menu_options": {
+                    "vehicles":"Select API Level",
+                    "other": "Other settings",
+                    "save": "Save & Exit"
+                }
+            },
+            "vehicles": {
                 "data": {
-                    "title": "Trace level (if debug mode HA enabled)",
-                    "level": "level"
+                    "vehicles": "Vehicles"
+                }
+            },
+            "other": {
+                "data": {
+                    "scan_interval":"Scan interval"
+                }
+            },
+            "apilevel": {
+                "data": {
+                    "api_level_climatisation":"API Level Climatisation",
+                    "api_level_ventilation": "API Level Ventilation",
+                    "api_level_charger": "API Level Charger",
+                    "api_level_windows_heating": "API Level Windows Heating",
+                    "api_level_lock": "API Level Lock"
                 }
             }
         }
-    }    
+    }             
 }

@@ -1,15 +1,14 @@
 """The Audi connect integration."""
 from __future__ import annotations
 
-import homeassistant.helpers.config_validation as cv
-import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 
-from .const import CONF_VIN, DOMAIN, CONF_ACTION
+from .const import DOMAIN
 from .coordinator import AudiDataUpdateCoordinator
+from .services import async_setup_services
 
 PLATFORMS: list[Platform] = [
     Platform.SENSOR,
@@ -17,19 +16,9 @@ PLATFORMS: list[Platform] = [
     Platform.DEVICE_TRACKER,
     Platform.SWITCH,
     Platform.LOCK,
+    Platform.SELECT,
+    Platform.NUMBER,
 ]
-
-SERVICE_REFRESH_VEHICLE_DATA = "refresh_data"
-SERVICE_REFRESH_VEHICLE_DATA_SCHEMA = vol.Schema(
-    {
-        vol.Required(CONF_VIN): cv.string,
-    }
-)
-
-SERVICE_EXECUTE_VEHICLE_ACTION = "execute_vehicle_action"
-SERVICE_EXECUTE_VEHICLE_ACTION_SCHEMA = vol.Schema(
-    {vol.Required(CONF_VIN): cv.string, vol.Required(CONF_ACTION): cv.string}
-)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -42,56 +31,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][entry.entry_id] = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    async def async_refresh_vehicle_data(call: ServiceCall) -> None:
-        device_id = call.data.get(CONF_VIN).lower()
-        device = dr.async_get(hass).async_get(device_id)
-        vin = dict(device.identifiers).get(DOMAIN)
-        await coordinator.api.async_refresh_vehicle_data(vin)
-        await coordinator.async_request_refresh()
-
-    async def async_execute_vehicle_action(call: ServiceCall) -> None:
-        device_id = call.data.get(CONF_VIN).lower()
-        device = dr.async_get(hass).async_get(device_id)
-        vin = dict(device.identifiers).get(DOMAIN)
-        action = call.data.get(CONF_ACTION).lower()
-
-        if action == "lock":
-            await coordinator.api.async_set_lock(vin, True)
-        if action == "unlock":
-            await coordinator.api.async_set_lock(vin, False)
-        if action == "start_climatisation":
-            await coordinator.api.async_set_climatisation(vin, True)
-        if action == "stop_climatisation":
-            await coordinator.api.async_set_climatisation(vin, False)
-        if action == "start_charger":
-            await coordinator.api.async_set_battery_charger(vin, True, False)
-        if action == "start_timed_charger":
-            await coordinator.api.async_set_battery_charger(vin, True, True)
-        if action == "stop_charger":
-            await coordinator.api.async_set_battery_charger(vin, False, False)
-        if action == "start_preheater":
-            await coordinator.api.async_set_pre_heater(vin, True)
-        if action == "stop_preheater":
-            await coordinator.api.async_set_pre_heater(vin, False)
-        if action == "start_window_heating":
-            await coordinator.api.async_set_window_heating(vin, True)
-        if action == "stop_window_heating":
-            await coordinator.api.async_set_window_heating(vin, False)
-
-        await coordinator.async_request_refresh()
-
-    hass.services.async_register(
-        DOMAIN,
-        SERVICE_REFRESH_VEHICLE_DATA,
-        async_refresh_vehicle_data,
-        schema=SERVICE_REFRESH_VEHICLE_DATA_SCHEMA,
-    )
-    hass.services.async_register(
-        DOMAIN,
-        SERVICE_EXECUTE_VEHICLE_ACTION,
-        async_execute_vehicle_action,
-        schema=SERVICE_EXECUTE_VEHICLE_ACTION_SCHEMA,
-    )
+    await async_setup_services(hass, coordinator)
 
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
 
@@ -109,3 +49,12 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry):
     """Reload device tracker if change option."""
     await hass.config_entries.async_reload(entry.entry_id)
+
+
+async def async_remove_config_entry_device(
+    hass: HomeAssistant,  # pylint: disable=unused-argument
+    config_entry: ConfigEntry,  # pylint: disable=unused-argument
+    device_entry: dr.DeviceEntry,  # pylint: disable=unused-argument
+) -> bool:
+    """Remove config entry from a device."""
+    return True

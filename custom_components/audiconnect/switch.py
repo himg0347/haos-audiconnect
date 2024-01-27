@@ -1,20 +1,44 @@
 """Support for Audi Connect switches."""
+from __future__ import annotations
+
 import logging
 
+from audiconnectpy import AudiException
+
+from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.entity import ToggleEntity
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .audiconnectpy import AudiException
 from .const import DOMAIN
 from .entity import AudiEntity
+from .helpers import AudiSwitchDescription
 
 _LOGGER = logging.getLogger(__name__)
 
-
-async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
-    """Old way."""
+SENSOR_TYPES: tuple[AudiSwitchDescription, ...] = (
+    AudiSwitchDescription(
+        icon="mdi:heating-coil",
+        key="preheater_state",
+        turn_mode="async_set_pre_heating",
+        value_fn=lambda x: x is not None,
+        translation_key="preheater_state",
+    ),
+    AudiSwitchDescription(
+        icon="mdi:ev-station",
+        key="charging_state",
+        value_fn=lambda x: x != "off",
+        turn_mode="async_set_battery_charger",
+        translation_key="charging_state",
+    ),
+    AudiSwitchDescription(
+        icon="mdi:air-conditioner",
+        key="climatisation_state",
+        turn_mode="async_set_climater",
+        value_fn=lambda x: x != "off",
+        translation_key="climatisation_state",
+    ),
+)
 
 
 async def async_setup_entry(
@@ -25,50 +49,43 @@ async def async_setup_entry(
 
     entities = []
     for vin, vehicle in coordinator.data.items():
-        for name, data in vehicle.states.items():
-            if data.get("sensor_type") == "switch":
-                entities.append(AudiSwitch(coordinator, vin, name))
+        for name in vehicle.states:
+            for description in SENSOR_TYPES:
+                if description.key == name:
+                    entities.append(AudiSwitch(coordinator, vin, description))
 
     async_add_entities(entities)
 
 
-class AudiSwitch(AudiEntity, ToggleEntity):
+class AudiSwitch(AudiEntity, SwitchEntity):
     """Representation of a Audi switch."""
 
-    def __init__(self, coordinator, vin, attr):
-        """Initialize."""
-        super().__init__(coordinator, vin)
-        self._entity = coordinator.data[vin].states[attr]
-        self._attribute = attr
-        self._attr_name = self.format_name(attr)
-        self._attr_unique_id = f"{vin}_{attr}"
-        self._attr_unit_of_measurement = self._entity.get("unit")
-        self._attr_icon = self._entity.get("icon")
-        self._attr_device_class = self._entity.get("device_class")
+    @property
+    def is_on(self):
+        """Return sensor state."""
+        value = self.coordinator.data[self.vin].states.get(self.uid)
+        if value and self.entity_description.value_fn:
+            return self.entity_description.value_fn(value)
+        return value
 
-    async def async_turn_on(self, **kwargs):
+    async def async_turn_on(self):
         """Turn the switch on."""
         try:
-            await getattr(self.coordinator.api, self._entity["turn_mode"])(
-                self._unique_id, True
-            )
+            await getattr(
+                self.coordinator.api.vehicles.get(self.vin),
+                self.entity_description.turn_mode,
+            )(True)
             await self.coordinator.async_request_refresh()
         except AudiException as error:
             _LOGGER.error("Error to turn on : %s", error)
 
-    async def async_turn_off(self, **kwargs):
+    async def async_turn_off(self):
         """Turn the switch off."""
         try:
-            await getattr(self.coordinator.api, self._entity["turn_mode"])(
-                self._unique_id, False
-            )
+            await getattr(
+                self.coordinator.api.vehicles.get(self.vin),
+                self.entity_description.turn_mode,
+            )(False)
             await self.coordinator.async_request_refresh()
         except AudiException as error:
-            _LOGGER.error("Error to turn on : %s", error)
-
-    @callback
-    def _handle_coordinator_update(self) -> None:
-        """Get the state and update it."""
-        value = self.coordinator.data[self._unique_id].states[self._attribute]["value"]
-        self._attr_is_on = value
-        super()._handle_coordinator_update()
+            _LOGGER.error("Error to turn off : %s", error)

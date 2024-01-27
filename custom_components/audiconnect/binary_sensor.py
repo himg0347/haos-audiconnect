@@ -1,15 +1,273 @@
 """Support for Audi Connect sensors."""
+from __future__ import annotations
+
 import logging
 
-from homeassistant.components.binary_sensor import BinarySensorEntity
+from homeassistant.components.binary_sensor import (
+    BinarySensorDeviceClass as dc,
+    BinarySensorEntity,
+)
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
 from .entity import AudiEntity
+from .helpers import AudiBinarySensorDescription
 
 _LOGGER = logging.getLogger(__name__)
+
+
+SENSOR_TYPES: tuple[AudiBinarySensorDescription, ...] = (
+    AudiBinarySensorDescription(
+        icon="mdi:oil",
+        key="warning_oil_change",
+        value_fn=lambda x: x == 1,
+        translation_key="warning_oil_change",
+    ),
+    AudiBinarySensorDescription(
+        icon="mdi:oil",
+        key="oil_display",
+        value_fn=lambda x: x == 1,
+        entity_registry_enabled_default=False,
+        translation_key="oil_display",
+    ),
+    AudiBinarySensorDescription(
+        icon="mdi:oil",
+        key="oil_level_valid",
+        value_fn=lambda x: x == 1,
+        entity_registry_enabled_default=False,
+        translation_key="oil_level_valid",
+    ),
+    AudiBinarySensorDescription(
+        icon="mdi:car-light-alert",
+        key="light_status",
+        value_fn=lambda x: x != 2,
+        translation_key="light_status",
+    ),
+    AudiBinarySensorDescription(
+        icon="mdi:lightbulb",
+        key="braking_status",
+        value_fn=lambda x: x != 2,
+        translation_key="braking_status",
+    ),
+    AudiBinarySensorDescription(
+        icon="mdi:power-plug",
+        key="plug_state",
+        device_class=dc.PLUG,
+        value_fn=lambda x: True if x == "connected" else False,
+    ),
+    AudiBinarySensorDescription(
+        icon="mdi:car-door-lock",
+        key="lock_state_left_front_door",
+        value_fn=lambda x: x != 2,
+        device_class=dc.LOCK,
+        entity_registry_enabled_default=False,
+        translation_key="lock_state_left_front_door",
+    ),
+    AudiBinarySensorDescription(
+        icon="mdi:car-door-lock",
+        key="lock_state_left_rear_door",
+        value_fn=lambda x: x != 2,
+        device_class=dc.LOCK,
+        entity_registry_enabled_default=False,
+        translation_key="lock_state_left_rear_door",
+    ),
+    AudiBinarySensorDescription(
+        icon="mdi:car-door-lock",
+        key="lock_state_right_front_door",
+        value_fn=lambda x: x != 2,
+        device_class=dc.LOCK,
+        entity_registry_enabled_default=False,
+        translation_key="lock_state_right_front_door",
+    ),
+    AudiBinarySensorDescription(
+        icon="mdi:car-door-lock",
+        key="lock_state_right_rear_door",
+        value_fn=lambda x: x != 2,
+        device_class=dc.LOCK,
+        entity_registry_enabled_default=False,
+        translation_key="lock_state_right_rear_door",
+    ),
+    AudiBinarySensorDescription(
+        key="lock_state_trunk_lid",
+        value_fn=lambda x: x != 2,
+        device_class=dc.LOCK,
+        entity_registry_enabled_default=False,
+        translation_key="lock_state_trunk_lid",
+    ),
+    AudiBinarySensorDescription(
+        key="lock_state_hood",
+        value_fn=lambda x: x != 2,
+        device_class=dc.LOCK,
+        entity_registry_enabled_default=False,
+        translation_key="lock_state_hood",
+    ),
+    AudiBinarySensorDescription(
+        icon="mdi:car-door",
+        key="state_sun_roof_motor_cover",
+        value_fn=lambda x: x != 2,
+        device_class="cover",
+        entity_registry_enabled_default=False,
+        translation_key="state_sun_roof_motor_cover",
+    ),
+    AudiBinarySensorDescription(
+        icon="mdi:car-door",
+        key="open_state_left_front_door",
+        value_fn=lambda x: x != 3,
+        device_class=dc.DOOR,
+        entity_registry_enabled_default=False,
+        translation_key="open_state_left_front_door",
+    ),
+    AudiBinarySensorDescription(
+        icon="mdi:car-door",
+        key="open_state_left_rear_door",
+        value_fn=lambda x: x != 3,
+        device_class=dc.DOOR,
+        entity_registry_enabled_default=False,
+        translation_key="open_state_left_rear_door",
+    ),
+    AudiBinarySensorDescription(
+        icon="mdi:car-door",
+        key="open_state_right_front_door",
+        value_fn=lambda x: x != 3,
+        device_class=dc.DOOR,
+        entity_registry_enabled_default=False,
+        translation_key="open_state_right_front_door",
+    ),
+    AudiBinarySensorDescription(
+        icon="mdi:car-door",
+        key="open_state_right_rear_door",
+        value_fn=lambda x: x != 3,
+        device_class=dc.DOOR,
+        entity_registry_enabled_default=False,
+        translation_key="open_state_right_rear_door",
+    ),
+    AudiBinarySensorDescription(
+        key="open_state_trunk_lid",
+        value_fn=lambda x: x != 3,
+        device_class=dc.DOOR,
+        entity_registry_enabled_default=False,
+        translation_key="open_state_trunk_lid",
+    ),
+    AudiBinarySensorDescription(
+        key="open_state_hood",
+        value_fn=lambda x: x != 3,
+        device_class=dc.DOOR,
+        entity_registry_enabled_default=False,
+        translation_key="open_state_hood",
+    ),
+    AudiBinarySensorDescription(
+        key="state_left_front_window",
+        value_fn=lambda x: x != 3,
+        device_class=dc.WINDOW,
+        entity_registry_enabled_default=False,
+        translation_key="state_left_front_window",
+    ),
+    AudiBinarySensorDescription(
+        key="state_left_rear_window",
+        value_fn=lambda x: x != 3,
+        device_class=dc.WINDOW,
+        entity_registry_enabled_default=False,
+        translation_key="state_left_rear_window",
+    ),
+    AudiBinarySensorDescription(
+        key="state_right_front_window",
+        value_fn=lambda x: x != 3,
+        device_class=dc.WINDOW,
+        entity_registry_enabled_default=False,
+        translation_key="state_right_front_window",
+    ),
+    AudiBinarySensorDescription(
+        key="state_right_rear_window",
+        value_fn=lambda x: x != 3,
+        device_class=dc.WINDOW,
+        entity_registry_enabled_default=False,
+        translation_key="state_right_rear_window",
+    ),
+    AudiBinarySensorDescription(
+        key="state_spoiler",
+        value_fn=lambda x: x != 3,
+        entity_registry_enabled_default=False,
+        translation_key="state_spoiler",
+    ),
+    AudiBinarySensorDescription(
+        icon="mdi:car-tire-alert",
+        key="tyre_pressure_left_front_tyre_difference",
+        value_fn=lambda x: x != 1,
+        device_class=dc.PROBLEM,
+        entity_registry_enabled_default=False,
+        translation_key="tyre_pressure_left_front_tyre_difference",
+    ),
+    AudiBinarySensorDescription(
+        icon="mdi:car-tire-alert",
+        key="tyre_pressure_left_rear_tyre_difference",
+        value_fn=lambda x: x != 1,
+        device_class=dc.PROBLEM,
+        entity_registry_enabled_default=False,
+        translation_key="tyre_pressure_left_rear_tyre_difference",
+    ),
+    AudiBinarySensorDescription(
+        icon="mdi:car-tire-alert",
+        key="tyre_pressure_right_front_tyre_difference",
+        value_fn=lambda x: x != 1,
+        device_class=dc.PROBLEM,
+        entity_registry_enabled_default=False,
+        translation_key="tyre_pressure_right_front_tyre_difference",
+    ),
+    AudiBinarySensorDescription(
+        icon="mdi:car-tire-alert",
+        key="tyre_pressure_right_rear_tyre_difference",
+        value_fn=lambda x: x != 1,
+        device_class=dc.PROBLEM,
+        entity_registry_enabled_default=False,
+        translation_key="tyre_pressure_right_rear_tyre_difference",
+    ),
+    AudiBinarySensorDescription(
+        icon="mdi:car-tire-alert",
+        key="tyre_pressure_spare_tyre_difference",
+        value_fn=lambda x: x != 1,
+        device_class=dc.PROBLEM,
+        entity_registry_enabled_default=False,
+        translation_key="tyre_pressure_spare_tyre_difference",
+    ),
+    AudiBinarySensorDescription(
+        key="energy_flow", value_fn=lambda x: x != "off", translation_key="energy_flow"
+    ),
+    AudiBinarySensorDescription(
+        icon="mdi:power-plug",
+        key="plug_lock",
+        device_class=dc.LOCK,
+        value_fn=lambda x: False if x == "locked" else True,
+    ),
+    AudiBinarySensorDescription(
+        key="preheater_active",
+        value_fn=lambda x: x != "off",
+        translation_key="preheater_active",
+    ),
+    AudiBinarySensorDescription(
+        key="charging_mode",
+        value_fn=lambda x: x != "off",
+        translation_key="charging_mode",
+    ),
+    # Meta sensors
+    AudiBinarySensorDescription(
+        key="any_window_open",
+        device_class=dc.WINDOW,
+        translation_key="any_window_open",
+    ),
+    AudiBinarySensorDescription(
+        key="any_door_open",
+        device_class=dc.DOOR,
+        icon="mdi:car-door",
+        translation_key="any_door_open",
+    ),
+    AudiBinarySensorDescription(
+        key="any_tyre_problem",
+        icon="mdi:car-tire-alert",
+        translation_key="any_tyre_problem",
+    ),
+)
 
 
 async def async_setup_entry(
@@ -20,30 +278,21 @@ async def async_setup_entry(
 
     entities = []
     for vin, vehicle in coordinator.data.items():
-        for name, data in vehicle.states.items():
-            if data.get("sensor_type") == "binary_sensor":
-                entities.append(AudiSensor(coordinator, vin, name))
+        for name in vehicle.states:
+            for description in SENSOR_TYPES:
+                if description.key == name:
+                    entities.append(AudiBinarySensor(coordinator, vin, description))
 
     async_add_entities(entities)
 
 
-class AudiSensor(AudiEntity, BinarySensorEntity):
+class AudiBinarySensor(AudiEntity, BinarySensorEntity):
     """Representation of an Audi sensor."""
 
-    def __init__(self, coordinator, vin, attr):
-        """Initialize."""
-        super().__init__(coordinator, vin)
-        entity = coordinator.data[vin].states[attr]
-        self._attribute = attr
-        self._attr_name = self.format_name(attr)
-        self._attr_unique_id = f"{vin}_{attr}"
-        self._attr_unit_of_measurement = entity.get("unit")
-        self._attr_icon = entity.get("icon")
-        self._attr_device_class = entity.get("device_class")
-
-    @callback
-    def _handle_coordinator_update(self) -> None:
-        """Get the state and update it."""
-        value = self.coordinator.data[self._unique_id].states[self._attribute]["value"]
-        self._attr_is_on = value
-        super()._handle_coordinator_update()
+    @property
+    def is_on(self):
+        """Return is on."""
+        value = self.coordinator.data[self.vin].states.get(self.uid)
+        if value and self.entity_description.value_fn:
+            return self.entity_description.value_fn(value)
+        return value
