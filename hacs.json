@@ -1,6 +1,7 @@
 {
-    "name": "Audi connect",
-    "domains": ["sensor", "binary_sensor", "switch", "device_tracker", "lock"],
-    "homeassistant": "0.110.0",
-    "render_readme": true
+  "name": "Audi Connect",
+  "render_readme": true,
+  "domains": ["binary_sensor", "device_tracker", "lock", "sensor", "switch"],
+  "iot_class": "Cloud Polling",
+  "homeassistant": "2025.1.0"
 }
