@@ -1,63 +1,133 @@
-"""Support for tracking an Audi."""
+"""Device tracker platform for Audi Connect integration."""
 from __future__ import annotations
 
 import logging
+from typing import Any
 
-from homeassistant.components.device_tracker import SourceType
-from homeassistant.components.device_tracker.config_entry import TrackerEntity
+from homeassistant.components.device_tracker import TrackerEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
-from .entity import AudiEntity
-from .helpers import AudiTrackerDescription
 
 _LOGGER = logging.getLogger(__name__)
 
-SENSOR_TYPES: tuple[AudiTrackerDescription, ...] = (
-    AudiTrackerDescription(
-        key="position", translation_key="position"
-    ),
-)
-
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up device tracker."""
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+    """Set up the device tracker platform."""
+    coordinator = hass.data[DOMAIN][config_entry.entry_id]["coordinator"]
+    connection = hass.data[DOMAIN][config_entry.entry_id]["connection"]
 
     entities = []
-    for vin, vehicle in coordinator.data.items():
-        for name in vehicle.states:
-            for description in SENSOR_TYPES:
-                if description.key == name:
-                    entities.append(AudiDeviceTracker(coordinator, vin, description))
+    
+    for vehicle in coordinator.data or []:
+        entities.append(
+            AudiConnectDeviceTracker(
+                coordinator,
+                connection,
+                vehicle,
+            )
+        )
 
     async_add_entities(entities)
 
 
-class AudiDeviceTracker(AudiEntity, TrackerEntity):
-    """Represent a tracked device."""
+class AudiConnectDeviceTracker(CoordinatorEntity, TrackerEntity):
+    """Representation of an Audi Connect device tracker."""
+
+    def __init__(
+        self,
+        coordinator,
+        connection,
+        vehicle,
+    ) -> None:
+        """Initialize the device tracker."""
+        super().__init__(coordinator)
+        self._connection = connection
+        self._vehicle = vehicle
+        self._attr_unique_id = f"{vehicle.vin}_tracker"
+        self._attr_name = f"{vehicle.title} Location"
+        self._attr_icon = "mdi:car"
 
     @property
-    def latitude(self):
+    def device_info(self) -> dict[str, Any]:
+        """Return device information."""
+        return {
+            "identifiers": {(DOMAIN, self._vehicle.vin)},
+            "name": self._vehicle.title,
+            "manufacturer": "Audi",
+            "model": self._vehicle.model,
+            "sw_version": self._vehicle.model_year,
+        }
+
+    @property
+    def latitude(self) -> float | None:
         """Return latitude value of the device."""
-        return self.coordinator.data[self.vin].states[self.uid]["latitude"]
+        if not self._vehicle or not self._vehicle.state:
+            return None
+        
+        position = self._vehicle.state.get("position")
+        if position and "lat" in position:
+            try:
+                return float(position["lat"])
+            except (ValueError, TypeError):
+                return None
+        return None
 
     @property
-    def longitude(self):
+    def longitude(self) -> float | None:
         """Return longitude value of the device."""
-        return self.coordinator.data[self.vin].states[self.uid]["longitude"]
+        if not self._vehicle or not self._vehicle.state:
+            return None
+        
+        position = self._vehicle.state.get("position")
+        if position and "lng" in position:
+            try:
+                return float(position["lng"])
+            except (ValueError, TypeError):
+                return None
+        return None
 
     @property
-    def source_type(self):
-        """Return the source type, eg gps or router, of the device."""
-        return SourceType.GPS
+    def location_accuracy(self) -> int:
+        """Return the location accuracy of the device."""
+        return 100  # Meters
 
     @property
-    def extra_state_attributes(self):
-        """Return extra attributes."""
-        attr = self.coordinator.data[self.vin].states[self.uid]
-        return {"timestamp": attr["timestamp"], "parktime": attr["parktime"]}
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return additional state attributes."""
+        if not self._vehicle or not self._vehicle.state:
+            return None
+            
+        attributes = {}
+        vehicle_state = self._vehicle.state
+        
+        # Add parking information if available
+        if "parkingPosition" in vehicle_state:
+            parking_pos = vehicle_state["parkingPosition"]
+            if parking_pos:
+                attributes["parking_time"] = parking_pos.get("parkingTime")
+                
+        # Add movement status
+        attributes["is_moving"] = vehicle_state.get("isMoving", False)
+        
+        # Add last update time
+        if hasattr(self._vehicle, 'last_update_time'):
+            attributes["last_update"] = self._vehicle.last_update_time
+            
+        # Add VIN (last 4 digits only for privacy)
+        if self._vehicle.vin:
+            attributes["vin"] = f"***{self._vehicle.vin[-4:]}"
+            
+        return attributes if attributes else None
+
+    @property
+    def source_type(self) -> str:
+        """Return the source type of the device."""
+        return "gps"
