@@ -11,8 +11,7 @@
   "loggers": ["audiconnect"],
   "requirements": [
     "aiohttp>=3.8.0",
-    "beautifulsoup4>=4.11.0",
-    "xmltodict>=0.13.0"
+    "beautifulsoup4>=4.11.0"
   ],
-  "version": "2.0.0"
+  "version": "2.0.1"
 }
