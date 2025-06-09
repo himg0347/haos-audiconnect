@@ -1,90 +1,123 @@
-"""Helper module."""
-from __future__ import annotations
+refresh_vehicle_data:
+  name: Refresh vehicle data
+  description: Refresh data for a specific vehicle
+  fields:
+    vin:
+      name: VIN
+      description: Vehicle Identification Number
+      required: true
+      selector:
+        text:
 
-import logging
+execute_vehicle_action:
+  name: Execute vehicle action
+  description: Execute an action on a vehicle
+  fields:
+    vin:
+      name: VIN
+      description: Vehicle Identification Number
+      required: true
+      selector:
+        text:
+    action:
+      name: Action
+      description: Action to perform on the vehicle
+      required: true
+      selector:
+        select:
+          options:
+            - "lock"
+            - "unlock"
+            - "start_climatisation"
+            - "stop_climatisation"
+            - "start_charger"
+            - "stop_charger"
+            - "start_preheater"
+            - "stop_preheater"
+            - "start_window_heating"
+            - "stop_window_heating"
 
-from audiconnectpy import AudiException
-import voluptuous as vol
+start_climate_control:
+  name: Start climate control
+  description: Start climate control with specified settings
+  fields:
+    vin:
+      name: VIN
+      description: Vehicle Identification Number
+      required: true
+      selector:
+        text:
+    temp_f:
+      name: Temperature (Fahrenheit)
+      description: Target temperature in Fahrenheit
+      required: false
+      selector:
+        number:
+          min: 32
+          max: 100
+          step: 1
+    temp_c:
+      name: Temperature (Celsius)
+      description: Target temperature in Celsius
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 38
+          step: 0.5
+    glass_heating:
+      name: Glass Heating
+      description: Enable glass heating
+      required: false
+      selector:
+        boolean:
+    seat_fl:
+      name: Front Left Seat
+      description: Enable front left seat heating
+      required: false
+      selector:
+        boolean:
+    seat_fr:
+      name: Front Right Seat
+      description: Enable front right seat heating
+      required: false
+      selector:
+        boolean:
+    seat_rl:
+      name: Rear Left Seat
+      description: Enable rear left seat heating
+      required: false
+      selector:
+        boolean:
+    seat_rr:
+      name: Rear Right Seat
+      description: Enable rear right seat heating
+      required: false
+      selector:
+        boolean:
 
-from homeassistant.core import HomeAssistant, ServiceCall
-from homeassistant.helpers import config_validation as cv, device_registry as dr
+refresh_cloud_data:
+  name: Refresh cloud data
+  description: Refresh data from the cloud for all vehicles
+  fields: {}
 
-from .const import CONF_ACTION, CONF_VIN, DOMAIN
-from .coordinator import AudiDataUpdateCoordinator
-
-_LOGGER = logging.getLogger(__name__)
-
-SERVICE_REFRESH_DATA = "refresh_data"
-SCHEMA_REFRESH_DATA = vol.Schema(
-    {
-        vol.Required(CONF_VIN): cv.string,
-    }
-)
-
-SERVICE_TURN_ON = "turn_on_action"
-SERVICE_TURN_OFF = "turn_off_action"
-SCHEMA_ACTION = vol.Schema(
-    {vol.Required(CONF_VIN): cv.string, vol.Required(CONF_ACTION): cv.string}
-)
-
-
-async def async_setup_services(
-    hass: HomeAssistant, coordinator: AudiDataUpdateCoordinator
-):
-    """Register services."""
-
-    async def async_refresh_data(call: ServiceCall) -> None:
-        device_id = call.data.get(CONF_VIN).lower()
-        device = dr.async_get(hass).async_get(device_id)
-        vin = dict(device.identifiers).get(DOMAIN)
-        vehicle = coordinator.api.vehicles.get(vin)
-        await vehicle.async_refresh_vehicle_data()
-        await coordinator.async_request_refresh()
-
-    async def async_turn_off_action(call: ServiceCall) -> None:
-        device_id = call.data[CONF_VIN].lower()
-        action = call.data[CONF_ACTION]
-        device = dr.async_get(hass).async_get(device_id)
-        vin = dict(device.identifiers).get(DOMAIN)
-
-        await async_actions(vin, action, False)
-
-    async def async_turn_on_action(call: ServiceCall) -> None:
-        device_id = call.data[CONF_VIN].lower()
-        action = call.data[CONF_ACTION]
-        device = dr.async_get(hass).async_get(device_id)
-        vin = dict(device.identifiers).get(DOMAIN)
-
-        await async_actions(vin, action, True)
-
-    async def async_actions(vin: str, action: str, mode: bool):
-        """Execute action."""
-        vehicle = coordinator.api.vehicles.get(vin)
-        try:
-            match action:
-                case "lock":
-                    await vehicle.async_set_lock(mode)
-                case "climater":
-                    await vehicle.async_set_climater(mode)
-                case "charger":
-                    await vehicle.async_set_battery_charger(mode)
-                case "pre_heating":
-                    await vehicle.async_set_pre_heating(mode)
-                case "window_heating":
-                    await vehicle.async_set_window_heating(mode)
-                case "ventilation":
-                    await vehicle.async_set_ventilation(mode)
-        except AudiException as error:
-            _LOGGER.error(error)
-        else:
-            await coordinator.async_request_refresh()
-
-    hass.services.async_register(
-        DOMAIN, SERVICE_REFRESH_DATA, async_refresh_data, schema=SCHEMA_REFRESH_DATA
-    )
-    hass.services.async_register(
-        DOMAIN, SERVICE_TURN_ON, async_turn_on_action, schema=SCHEMA_ACTION
-    )
-    hass.services.async_register(
-        DOMAIN, SERVICE_TURN_OFF, async_turn_off_action, schema=SCHEMA_ACTION
-    )
+start_auxiliary_heating:
+  name: Start auxiliary heating
+  description: Start auxiliary heating with specified duration
+  fields:
+    vin:
+      name: VIN
+      description: Vehicle Identification Number
+      required: true
+      selector:
+        text:
+    duration:
+      name: Duration
+      description: Duration in minutes
+      required: false
+      default: 20
+      selector:
+        number:
+          min: 5
+          max: 60
+          step: 5
