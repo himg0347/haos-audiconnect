@@ -1,13 +1,18 @@
 {
-  "domain": "audiconnect",  
-  "name": "Audi Connect",  
-  "after_dependencies": ["lock"],
-  "codeowners": ["@cyr-ius"],
+  "domain": "audiconnect",
+  "name": "Audi Connect",
+  "codeowners": ["@himg0347"],
   "config_flow": true,
-  "documentation": "https://github.com/cyr-ius/hass-audiconnect",
+  "dependencies": [],
+  "documentation": "https://github.com/himg0347/haos-audiconnect",
+  "integration_type": "hub",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/cyr-ius/hass-audiconnect/issues",
-  "loggers": ["audiconnectpy"],
-  "requirements": ["audiconnectpy==1.5.3"],
-  "version": "1.5.1"
+  "issue_tracker": "https://github.com/himg0347/haos-audiconnect/issues",
+  "loggers": ["audiconnect"],
+  "requirements": [
+    "aiohttp>=3.8.0",
+    "beautifulsoup4>=4.11.0",
+    "xmltodict>=0.13.0"
+  ],
+  "version": "2.0.0"
 }
