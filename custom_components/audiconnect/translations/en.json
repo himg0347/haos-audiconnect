@@ -1,68 +1,210 @@
 {
-    "config": {
+  "config": {
+    "step": {
+      "user": {
         "title": "Audi Connect",
-        "step": {
-            "user": {
-                "title": "Register your account",
-                "data": {
-                    "username": "Email",
-                    "password": "Password",
-                    "country": "country code",
-                    "pin": "Pin code"
-                }
-            }
+        "description": "Set up your Audi Connect account to integrate your Audi vehicle with Home Assistant.",
+        "data": {
+          "username": "Username",
+          "password": "Password",
+          "spin": "S-PIN (Optional)",
+          "region": "Region",
+          "scan_interval": "Scan Interval (minutes)",
+          "api_level": "API Level"
         },
-        "error": {
-            "cannot_connect": "Can't connect to API.",
-            "invalid_auth": "Invalid username password combination",
-            "unknown": "unknown error."
+        "data_description": {
+          "username": "Your Audi Connect account username",
+          "password": "Your Audi Connect account password",
+          "spin": "Your S-PIN for vehicle actions (optional)",
+          "region": "The region where your Audi Connect account is registered",
+          "scan_interval": "How often to fetch data from Audi Connect (minimum 15 minutes)",
+          "api_level": "API level for vehicle actions (0 for gas vehicles, 1 for e-tron vehicles)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to Audi Connect. Please check your credentials and try again.",
+      "no_vehicles": "No vehicles found in your Audi Connect account.",
+      "unknown": "An unexpected error occurred. Please try again."
+    },
+    "abort": {
+      "already_configured": "This Audi Connect account is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Audi Connect Options",
+        "description": "Configure Audi Connect integration settings.",
+        "data": {
+          "scan_interval": "Scan Interval (minutes)",
+          "api_level": "API Level"
         },
-        "abort": {
-            "already_configured": "Service is already configured"
+        "data_description": {
+          "scan_interval": "How often to fetch data from Audi Connect (minimum 15 minutes)",
+          "api_level": "API level for vehicle actions (0 for gas vehicles, 1 for e-tron vehicles)"
         }
+      }
+    }
+  },
+  "services": {
+    "refresh_vehicle_data": {
+      "name": "Refresh Vehicle Data",
+      "description": "Refresh data for a specific vehicle from the vehicle itself.",
+      "fields": {
+        "vin": {
+          "name": "VIN",
+          "description": "Vehicle Identification Number of the vehicle to control."
+        },
+        "temp_f": {
+          "name": "Temperature (Fahrenheit)",
+          "description": "Target temperature in Fahrenheit."
+        },
+        "temp_c": {
+          "name": "Temperature (Celsius)",
+          "description": "Target temperature in Celsius."
+        },
+        "glass_heating": {
+          "name": "Glass Heating",
+          "description": "Enable or disable glass heating."
+        },
+        "seat_fl": {
+          "name": "Front Left Seat",
+          "description": "Enable or disable front left seat heating."
+        },
+        "seat_fr": {
+          "name": "Front Right Seat",
+          "description": "Enable or disable front right seat heating."
+        },
+        "seat_rl": {
+          "name": "Rear Left Seat",
+          "description": "Enable or disable rear left seat heating."
+        },
+        "seat_rr": {
+          "name": "Rear Right Seat",
+          "description": "Enable or disable rear right seat heating."
+        }
+      }
     },
-    "selector": {
-        "select_mode": {
-          "options": {
-            "lock": "Lock",
-            "climater": "Climater",
-            "charger": "Charger",
-            "pre_heating": "Pre heating",
-            "window_heating": "Windows heating",
-            "ventilation": "Ventilation"
-          }
-        }
+    "refresh_cloud_data": {
+      "name": "Refresh Cloud Data",
+      "description": "Refresh data from the cloud for all vehicles.",
+      "fields": {}
     },
-    "options": {
-        "step": {
-
-          "init": {
-                "title": "Options",
-                "menu_options": {
-                    "vehicles":"Select API Level",
-                    "other": "Other settings",
-                    "save": "Save & Exit"
-                }
-            },
-            "vehicles": {
-                "data": {
-                    "vehicles": "Vehicles"
-                }
-            },
-            "other": {
-                "data": {
-                    "scan_interval":"Scan interval"
-                }
-            },
-            "apilevel": {
-                "data": {
-                    "api_level_climatisation":"API Level Climatisation",
-                    "api_level_ventilation": "API Level Ventilation",
-                    "api_level_charger": "API Level Charger",
-                    "api_level_windows_heating": "API Level Windows Heating",
-                    "api_level_lock": "API Level Lock"
-                }
-            }
+    "start_auxiliary_heating": {
+      "name": "Start Auxiliary Heating",
+      "description": "Start auxiliary heating with specified duration.",
+      "fields": {
+        "vin": {
+          "name": "VIN",
+          "description": "Vehicle Identification Number of the vehicle to control."
+        },
+        "duration": {
+          "name": "Duration",
+          "description": "Duration in minutes for auxiliary heating."
         }
-    }             
-}
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "range": {
+        "name": "Range"
+      },
+      "mileage": {
+        "name": "Mileage"
+      },
+      "fuel_level": {
+        "name": "Fuel Level"
+      },
+      "tank_level": {
+        "name": "Tank Level"
+      },
+      "battery_level": {
+        "name": "Battery Level"
+      },
+      "charging_state": {
+        "name": "Charging State"
+      },
+      "oil_level": {
+        "name": "Oil Level"
+      },
+      "outdoor_temperature": {
+        "name": "Outdoor Temperature"
+      },
+      "service_inspection_distance": {
+        "name": "Service Inspection Distance"
+      },
+      "service_inspection_time": {
+        "name": "Service Inspection Time"
+      }
+    },
+    "binary_sensor": {
+      "doors_locked": {
+        "name": "Doors Locked"
+      },
+      "windows_closed": {
+        "name": "Windows Closed"
+      },
+      "any_door_unlocked": {
+        "name": "Any Door Unlocked"
+      },
+      "any_window_open": {
+        "name": "Any Window Open"
+      },
+      "trunk_unlocked": {
+        "name": "Trunk Unlocked"
+      },
+      "hood_open": {
+        "name": "Hood Open"
+      },
+      "is_moving": {
+        "name": "Is Moving"
+      }
+    },
+    "lock": {
+      "lock": {
+        "name": "Lock"
+      }
+    },
+    "switch": {
+      "climatisation": {
+        "name": "Climatisation"
+      },
+      "charger": {
+        "name": "Charger"
+      },
+      "window_heating": {
+        "name": "Window Heating"
+      }
+    },
+    "device_tracker": {
+      "tracker": {
+        "name": "Location"
+      }
+    }
+  }
+}"vin": {
+          "name": "VIN",
+          "description": "Vehicle Identification Number of the vehicle to refresh."
+        }
+      }
+    },
+    "execute_vehicle_action": {
+      "name": "Execute Vehicle Action",
+      "description": "Execute a specific action on a vehicle.",
+      "fields": {
+        "vin": {
+          "name": "VIN",
+          "description": "Vehicle Identification Number of the vehicle to control."
+        },
+        "action": {
+          "name": "Action",
+          "description": "The action to perform on the vehicle."
+        }
+      }
+    },
+    "start_climate_control": {
+      "name": "Start Climate Control",
+      "description": "Start climate control with custom settings.",
+      "fields": {
